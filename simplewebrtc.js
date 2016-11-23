@@ -10,7 +10,8 @@ function SimpleWebRTC(opts) {
     var options = opts || {};
     var config = this.config = {
             //url: 'https://signaling.simplewebrtc.com:443/',
-            url: 'https://sandbox.simplewebrtc.com:443/',
+            //url: 'https://sandbox.simplewebrtc.com:443/',
+            url: 'https://localhost:8888',
             socketio: {/* 'force new connection':true*/},
             connection: null,
             debug: false,
@@ -35,6 +36,9 @@ function SimpleWebRTC(opts) {
                 muted: true
             }
         };
+
+    console.log("entrou no novo");
+
     var item, connection;
 
     // We also allow a 'logger' option. It can be any object that implements
