@@ -9,7 +9,8 @@ function SimpleWebRTC(opts) {
     var self = this;
     var options = opts || {};
     var config = this.config = {
-            url: 'https://signaling.simplewebrtc.com:443/',
+            //url: 'https://signaling.simplewebrtc.com:443/',
+            url: 'https://sandbox.simplewebrtc.com:443/',
             socketio: {/* 'force new connection':true*/},
             connection: null,
             debug: false,
@@ -55,7 +56,9 @@ function SimpleWebRTC(opts) {
 
     // set our config from options
     for (item in options) {
-        this.config[item] = options[item];
+        if (options.hasOwnProperty(item)) {
+            this.config[item] = options[item];
+        }
     }
 
     // attach detected support for convenience
@@ -158,11 +161,11 @@ function SimpleWebRTC(opts) {
         this.webrtc.on('stoppedSpeaking', this.setVolumeForAll.bind(this, 1));
     }
 
-    // connection.on('stunservers', function (args) {
-    //     // resets/overrides the config
-    //     self.webrtc.config.peerConnectionConfig.iceServers = args;
-    //     self.emit('stunservers', args);
-    // });
+    connection.on('stunservers', function (args) {
+        // resets/overrides the config
+        self.webrtc.config.peerConnectionConfig.iceServers = args;
+        self.emit('stunservers', args);
+    });
     connection.on('turnservers', function (args) {
         // appends to the config
         self.webrtc.config.peerConnectionConfig.iceServers = self.webrtc.config.peerConnectionConfig.iceServers.concat(args);
@@ -172,6 +175,7 @@ function SimpleWebRTC(opts) {
     this.webrtc.on('iceFailed', function (peer) {
         // local ice failure
     });
+
     this.webrtc.on('connectivityError', function (peer) {
         // remote ice failure
     });
@@ -257,9 +261,9 @@ SimpleWebRTC.prototype = Object.create(WildEmitter.prototype, {
 SimpleWebRTC.prototype.leaveRoom = function () {
     if (this.roomName) {
         this.connection.emit('leave');
-        this.webrtc.peers.forEach(function (peer) {
-            peer.end();
-        });
+        while (this.webrtc.peers.length) {
+            this.webrtc.peers[0].end();
+        }
         if (this.getLocalScreen()) {
             this.stopScreenShare();
         }
@@ -433,12 +437,17 @@ SimpleWebRTC.prototype.stopScreenShare = function () {
 
 SimpleWebRTC.prototype.testReadiness = function () {
     var self = this;
-    if (this.webrtc.localStream && this.sessionReady) {
-        self.emit('readyToCall', self.connection.getSessionid());
+    if (this.sessionReady) {
+        if (!this.config.media.video && !this.config.media.audio) {
+            self.emit('readyToCall', self.connection.getSessionid());
+        } else if (this.webrtc.localStreams.length > 0) {
+            self.emit('readyToCall', self.connection.getSessionid());
+        }
     }
 };
 
 SimpleWebRTC.prototype.createRoom = function (name, cb) {
+    this.roomName = name;
     if (arguments.length === 2) {
         this.connection.emit('create', name, cb);
     } else {
